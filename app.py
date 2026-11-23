@@ -1,3 +1,4 @@
+import time
 import streamlit as st
 from google import genai
 from google.genai import types
@@ -20,6 +21,24 @@ Sigue este protocolo obligatorio en cada respuesta:
 4. EXPLICACIÓN PASO A PASO: Muestra el desarrollo claro desde la fórmula base hasta el resultado final. Si hay opciones múltiples, explica por qué la correcta es esa y cuál es el error típico detrás de las opciones incorrectas.
 """
 
+def llamar_con_respaldo(modelos, contents, config):
+    ultimo_error = None
+    for modelo in modelos:
+        for intento in range(3):
+            try:
+                return client.models.generate_content(
+                    model=modelo,
+                    contents=contents,
+                    config=config
+                )
+            except Exception as e:
+                ultimo_error = e
+                if "503" in str(e) or "429" in str(e) or "UNAVAILABLE" in str(e):
+                    time.sleep(2)
+                    continue
+                raise e
+    raise ultimo_error
+
 imagen_subida = st.file_uploader("Sube una foto del diagrama, circuito o ejercicio (opcional)", type=["png", "jpg", "jpeg"])
 pregunta = st.text_area("Escribe o pega aquí la pregunta del examen:", height=150)
 
@@ -36,21 +55,22 @@ if st.button("Evaluar y Explicar", type="primary"):
                     contenido_paso1.append(Image.open(imagen_subida))
                 contenido_paso1.append(texto_consulta)
 
-                # Paso 1: Consulta a los libros (RAG)
-                resp_libros = client.models.generate_content(
-                    model="gemini-3.8-flash",
-                    contents=contenido_paso1,
-                    config=types.GenerateContentConfig(
-                        system_instruction="Eres un asistente de investigación en Ingeniería Mecatrónica. Busca en los libros adjuntos las fórmulas exactas, definiciones, tablas o criterios aplicables al problema y cítalos fielmente.",
-                        temperature=0.0,
-                        tools=[
-                            types.Tool(
-                                file_search=types.FileSearch(
-                                    file_search_store_names=[STORE_ID]
-                                )
+                config_paso1 = types.GenerateContentConfig(
+                    system_instruction="Eres un asistente de investigación en Ingeniería Mecatrónica. Busca en los libros adjuntos las fórmulas exactas, definiciones, tablas o criterios aplicables al problema y cítalos fielmente.",
+                    temperature=0.0,
+                    tools=[
+                        types.Tool(
+                            file_search=types.FileSearch(
+                                file_search_store_names=[STORE_ID]
                             )
-                        ]
-                    )
+                        )
+                    ]
+                )
+
+                resp_libros = llamar_con_respaldo(
+                    ["gemini-2.5-flash", "gemini-2.5-pro"],
+                    contenido_paso1,
+                    config_paso1
                 )
 
             with st.spinner("Paso 2/2: Resolviendo y verificando cálculos en Python..."):
@@ -63,15 +83,16 @@ if st.button("Evaluar y Explicar", type="primary"):
                     f"Resuelve el problema siguiendo estrictamente el protocolo, usando Python para verificar todos los cálculos."
                 )
 
-                # Paso 2: Razonamiento profundo + Ejecución de Python
-                resp_final = client.models.generate_content(
-                    model="gemini-2.5-pro",
-                    contents=contenido_paso2,
-                    config=types.GenerateContentConfig(
-                        system_instruction=SYSTEM_PROMPT,
-                        temperature=0.0,
-                        tools=[{"code_execution": {}}]
-                    )
+                config_paso2 = types.GenerateContentConfig(
+                    system_instruction=SYSTEM_PROMPT,
+                    temperature=0.0,
+                    tools=[{"code_execution": {}}]
+                )
+
+                resp_final = llamar_con_respaldo(
+                    ["gemini-2.5-pro", "gemini-2.5-flash"],
+                    contenido_paso2,
+                    config_paso2
                 )
 
                 st.markdown("### 📝 Explicación Detallada")
@@ -79,4 +100,3 @@ if st.button("Evaluar y Explicar", type="primary"):
 
         except Exception as e:
             st.error(f"Detalle exacto del error de Google: {e}")
-
