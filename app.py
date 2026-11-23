@@ -68,7 +68,7 @@ if st.button("Evaluar y Explicar", type="primary"):
                 )
 
                 resp_libros = llamar_con_respaldo(
-                    ["gemini-3.8-flash", "gemini-2.5-pro"],
+                    ["gemini-3.8-flash", "gemini-3.1-pro"],
                     contenido_paso1,
                     config_paso1
                 )
@@ -90,7 +90,7 @@ if st.button("Evaluar y Explicar", type="primary"):
                 )
 
                 resp_final = llamar_con_respaldo(
-                    ["gemini-2.5-pro", "gemini-3.8-flash"],
+                    ["gemini-3.1-pro", "gemini-3.8-flash"],
                     contenido_paso2,
                     config_paso2
                 )
@@ -100,4 +100,5 @@ if st.button("Evaluar y Explicar", type="primary"):
 
         except Exception as e:
             st.error(f"Detalle exacto del error de Google: {e}")
+
 
