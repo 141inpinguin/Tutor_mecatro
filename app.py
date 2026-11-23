@@ -33,9 +33,12 @@ def llamar_con_respaldo(modelos, contents, config):
                 )
             except Exception as e:
                 ultimo_error = e
-                if "503" in str(e) or "429" in str(e) or "UNAVAILABLE" in str(e):
+                err_str = str(e)
+                if "503" in err_str or "429" in err_str or "UNAVAILABLE" in err_str:
                     time.sleep(2)
                     continue
+                if "404" in err_str or "NOT_FOUND" in err_str:
+                    break
                 raise e
     raise ultimo_error
 
@@ -57,7 +60,6 @@ if st.button("Evaluar y Explicar", type="primary"):
 
                 config_paso1 = types.GenerateContentConfig(
                     system_instruction="Eres un asistente de investigación en Ingeniería Mecatrónica. Busca en los libros adjuntos las fórmulas exactas, definiciones, tablas o criterios aplicables al problema y cítalos fielmente.",
-                    temperature=0.0,
                     tools=[
                         types.Tool(
                             file_search=types.FileSearch(
@@ -68,7 +70,7 @@ if st.button("Evaluar y Explicar", type="primary"):
                 )
 
                 resp_libros = llamar_con_respaldo(
-                    ["gemini-3.8-flash", "gemini-3.1-pro"],
+                    ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-4-hydrogen"],
                     contenido_paso1,
                     config_paso1
                 )
@@ -85,12 +87,11 @@ if st.button("Evaluar y Explicar", type="primary"):
 
                 config_paso2 = types.GenerateContentConfig(
                     system_instruction=SYSTEM_PROMPT,
-                    temperature=0.0,
                     tools=[{"code_execution": {}}]
                 )
 
                 resp_final = llamar_con_respaldo(
-                    ["gemini-3.1-pro", "gemini-3.8-flash"],
+                    ["gemini-4-carbon", "gemini-4-hydrogen", "gemini-3.1-pro-preview", "gemini-3.8-flash"],
                     contenido_paso2,
                     config_paso2
                 )
@@ -100,5 +101,3 @@ if st.button("Evaluar y Explicar", type="primary"):
 
         except Exception as e:
             st.error(f"Detalle exacto del error de Google: {e}")
-
-
