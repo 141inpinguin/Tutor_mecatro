@@ -38,7 +38,7 @@ if st.button("Evaluar y Explicar", type="primary"):
 
                 # Paso 1: Consulta a los libros (RAG)
                 resp_libros = client.models.generate_content(
-                    model="gemini-2.5-flash",
+                    model="gemini-3.8-flash",
                     contents=contenido_paso1,
                     config=types.GenerateContentConfig(
                         system_instruction="Eres un asistente de investigación en Ingeniería Mecatrónica. Busca en los libros adjuntos las fórmulas exactas, definiciones, tablas o criterios aplicables al problema y cítalos fielmente.",
@@ -79,3 +79,4 @@ if st.button("Evaluar y Explicar", type="primary"):
 
         except Exception as e:
             st.error(f"Detalle exacto del error de Google: {e}")
+
